@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ur" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>آٹا چکی رجسٹر</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2e7d32">
+    <style>
+        :root { --primary: #2e7d32; --accent: #f1c40f; --danger: #d32f2f; --dark: #263238; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f7; padding: 10px; margin: 0; }
+        .container { background: white; max-width: 800px; margin: auto; border-radius: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.1); padding: 15px; }
+        h2 { text-align: center; color: var(--primary); border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
+        input { padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; width: 100%; box-sizing: border-box; }
+        label { font-weight: bold; margin-bottom: 5px; display: block; }
+        .btn-calc { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; }
+        #resultBox { background: var(--dark); color: white; padding: 20px; border-radius: 12px; margin-top: 15px; display: none; }
+        .res-row { display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px solid #444; padding-bottom: 4px; }
+        .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .action-grid button { padding: 12px; border: none; border-radius: 6px; font-weight: bold; color: white; cursor: pointer; }
+        .btn-save { background: #27ae60; grid-column: span 2; }
+        .btn-khata { background: #e67e22; }
+        .btn-edit { background: #2980b9; }
+        .tabs { display: flex; margin-top: 25px; border-bottom: 2px solid #ddd; }
+        .tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; font-weight: bold; }
+        .tab.active { border-bottom: 4px solid var(--primary); color: var(--primary); }
+        .tab-content { display: none; padding-top: 15px; }
+        .tab-content.active { display: block; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        th { background: #37474f; color: white; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>آٹا چکی ڈیجیٹل رجسٹر</h2>
+
+    <div class="form-grid">
+        <div><label>گاہک کا نام</label><input type="text" id="cName"></div>
+        <div><label>گندم وزن (کلو)</label><input type="number" id="wWeight"></div>
+        <div><label>آٹا ریٹ</label><input type="number" id="aRate" value="110"></div>
+        <div><label>ایڈوانس آٹا (کلو)</label><input type="number" id="advA" value="0"></div>
+    </div>
+
+    <button class="btn-calc" onclick="calculateBill()">حساب کریں</button>
+
+    <div id="resultBox">
+        <div class="res-row"><span>کل فیس:</span> <span id="outF">0</span></div>
+        <div class="res-row"><span>ٹوٹل بل:</span> <span id="outB" style="color:#f1c40f; font-size:20px;">0</span></div>
+        <div class="res-row"><span>صاف آٹا:</span> <span id="outNet" style="color:#2ecc71; font-size:20px;">0</span> کلو</div>
+        <div class="action-grid">
+            <button class="btn-save" onclick="saveData('Paid')">نقد وصولی</button>
+            <button class="btn-edit" onclick="document.getElementById('resultBox').style.display='none'">ایڈٹ</button>
+            <button class="btn-khata" onclick="saveData('Khata')">ادھار کھاتہ</button>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab(event, 'tab1')">روزمرہ</div>
+        <div class="tab" onclick="switchTab(event, 'tab2')">کھاتہ</div>
+    </div>
+
+    <div id="tab1" class="tab-content active">
+        <table id="dailyTbl"><thead><tr><th>نام</th><th>وزن</th><th>بل</th><th>اعمال</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div id="tab2" class="tab-content">
+        <table id="khataTbl"><thead><tr><th>نام</th><th>بقایا</th><th>اعمال</th></tr></thead><tbody></tbody></table>
+    </div>
+</div>
+
+<script>
+    let db = JSON.parse(localStorage.getItem('chaki_db')) || [];
+
+    function calculateBill() {
+        const name = document.getElementById('cName').value;
+        const weight = parseFloat(document.getElementById('wWeight').value);
+        const rate = parseFloat(document.getElementById('aRate').value);
+        const adv = parseFloat(document.getElementById('advA').value) || 0;
+
+        if (!name || isNaN(weight)) { alert("نام اور وزن درست درج کریں"); return; }
+
+        // فارمولا
+        const katoti = weight * 0.050; // 5% کٹوتی
+        const fees = weight * 4.20;    // 4.20 روپے پسائی
+        const netFlour = (weight - katoti) - adv;
+
+        document.getElementById('outF').innerText = fees.toFixed(0);
+        document.getElementById('outB').innerText = fees.toFixed(0);
+        document.getElementById('outNet').innerText = netFlour.toFixed(2);
+        document.getElementById('resultBox').style.display = 'block';
+
+        window.currentData = { id: Date.now(), name, weight, fees, netFlour, date: new Date().toLocaleDateString() };
+    }
+
+    function saveData(status) {
+        let data = { ...window.currentData, status, paid: status === 'Paid' ? window.currentData.fees : 0 };
+        db.push(data);
+        localStorage.setItem('chaki_db', JSON.stringify(db));
+        render();
+        document.getElementById('resultBox').style.display = 'none';
+        alert("محفوظ ہو گیا");
+    }
+
+    function render() {
+        const daily = document.querySelector('#dailyTbl tbody');
+        const khata = document.querySelector('#khataTbl tbody');
+        daily.innerHTML = ''; khata.innerHTML = '';
+
+        db.forEach(item => {
+            let row = `<tr><td>${item.name}</td><td>${item.weight}</td><td>${item.fees}</td><td><button onclick="del(${item.id})">حذف</button></td></tr>`;
+            if(item.status === 'Paid') daily.innerHTML += row;
+            else khata.innerHTML += row;
+        });
+    }
+
+    function del(id) {
+        db = db.filter(i => i.id !== id);
+        localStorage.setItem('chaki_db', JSON.stringify(db));
+        render();
+    }
+
+    function switchTab(e, id) {
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        e.currentTarget.classList.add('active');
+    }
+
+    // سروس ورکر رجسٹریشن (گٹ ہب کے لیے درست طریقہ)
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').catch(err => console.log("SW Error:", err));
+    }
+    
+    render();
+</script>
+</body>
+</html>
